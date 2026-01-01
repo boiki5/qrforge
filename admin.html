@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>QRForge Admin — Local</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --pink:#e91e63; --bg:linear-gradient(135deg,#fff1f8,#fce4ec 40%,#f8bbd0); }
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);font-family:Inter,system-ui;padding:22px;display:grid;place-items:center;color:#111}
+  .card{background:#fff;padding:28px;border-radius:16px;max-width:860px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.08)}
+  h1{margin:0 0 12px;color:var(--pink)}
+  p.muted{color:#666;margin:6px 0 16px}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  input,button,select,textarea{font:inherit}
+  input[type="text"], input[type="password"], input[type="url"], textarea {width:100%;padding:10px;border-radius:10px;border:1px solid #e6e6e6; margin:8px 0;}
+  .small{padding:8px 12px;border-radius:10px;border:none;background:#eee;cursor:pointer}
+  .btn{padding:10px 14px;border-radius:12px;border:none;background:var(--pink);color:#fff;cursor:pointer}
+  .btn.ghost{background:transparent;color:var(--pink);border:1px solid rgba(0,0,0,0.06)}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:14px 0}
+  .stat{background:linear-gradient(180deg,#fff,#fff7fb);padding:12px;border-radius:10px;text-align:center;border:1px solid rgba(0,0,0,0.03)}
+  .stat big{display:block;font-size:1.6rem;color:var(--pink)}
+  .section{margin-top:16px}
+  .log-section{margin-top:12px;border-radius:10px;padding:10px;border:1px solid #eee;max-height:220px;overflow:auto}
+  .log-entry{font-size:0.9rem;padding:6px 0;border-bottom:1px dashed #f2f2f2}
+  label{font-weight:700;font-size:0.95rem}
+  .ad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+  .ad-slot-box{border:1px dashed #e9e9e9;padding:8px;border-radius:8px;background:#fafafa; text-align:center}
+  .ad-slot-box img{max-width:100%;height:60px;object-fit:contain;border-radius:6px}
+  .controls{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .muted{color:#666}
+  .footer{margin-top:18px;text-align:center;color:#666;font-size:0.9rem}
+  .flex{display:flex;gap:8px;align-items:center}
+  .switch{position:relative;width:52px;height:28px;background:#ccc;border-radius:999px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;border-radius:999px;background:#e91e63}
+  .slider:before{content:"";position:absolute;width:22px;height:22px;background:#fff;border-radius:50%;left:4px;bottom:3px;transition:.2s}
+  input:checked + .slider:before{transform:translateX(24px)}
+  .small-ghost{background:#f3f4f6;border-radius:8px;padding:8px 10px;border:1px solid #e6e6e6;cursor:pointer}
+  .col{flex:1;min-width:220px}
+  @media (max-width:900px){ .stats{grid-template-columns:repeat(2,1fr)} .ad-grid{grid-template-columns:repeat(2,1fr)} }
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h1>QRForge — Admin (Local)</h1>
+    <p class="muted">This admin UI runs entirely in the browser. No Supabase required. Protected by a local access key you can change after login.</p>
+
+    <!-- LOGIN -->
+    <div id="login-area">
+      <label>Enter Admin Key</label>
+      <input type="password" id="admin-key-input" placeholder="Enter admin key">
+      <div class="row">
+        <button class="btn" id="unlock-btn">Unlock Dashboard</button>
+        <button class="small-ghost" id="demo-unlock">Demo unlock (no key)</button>
+      </div>
+      <p class="muted">Default admin key is stored inside this page. You can change it after login (Settings → Change Key).</p>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard" style="display:none">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div style="display:flex;gap:12px;align-items:center">
+          <button class="btn" id="logout-btn">Logout</button>
+          <button class="small-ghost" id="back-app-btn">Back to App</button>
+        </div>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="small-ghost" id="export-logs">Export Logs</button>
+          <button class="small-ghost" id="import-logs">Import Logs</button>
+          <button class="small-ghost" id="clear-logs">Clear Logs</button>
+        </div>
+      </div>
+
+      <!-- STATS -->
+      <div class="section">
+        <div class="stats">
+          <div class="stat"><div class="muted">QR Created</div><big id="stat-qcreated">0</big></div>
+          <div class="stat"><div class="muted">Total Scans</div><big id="stat-scans">0</big></div>
+          <div class="stat"><div class="muted">Donate Clicks</div><big id="stat-donates">0</big></div>
+          <div class="stat"><div class="muted">Affiliate Clicks</div><big id="stat-affs">0</big></div>
+        </div>
+      </div>
+
+<div class="section" style="padding-top: 20px; border-top: 1px dashed #eee;">
+        <h3>🎨 Branding (Logo)</h3>
+        <p class="muted">Upload a logo here to override the Supabase logo. (Max 300KB)</p>
+        <div class="row" style="align-items: center;">
+            <img id="current-logo-preview" src="" style="height: 50px; display: none; border: 1px solid #eee; padding: 2px; border-radius: 4px;">
+            <input type="file" id="logo-upload" accept="image/*" style="flex-grow: 1;">
+        </div>
+        <button class="small-ghost" id="reset-logo-btn" style="margin-top: 8px;">Reset to Default</button>
+      </div>
+
+      <!-- ADS SETTINGS -->
+      <div class="section">
+        <h3>Ad Manager (Top & Bottom — 3 slots each)</h3>
+        <p class="muted">Upload up to 3 images per slot. Admin controls rotation and links. Ads are stored in localStorage as Base64.</p>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap;">
+          <div class="col">
+            <label>Top Ads</label>
+            <div class="ad-grid" id="top-ads-grid"></div>
+
+            <div class="controls">
+              <input type="file" id="top-upload" accept="image/*">
+              <input type="text" id="top-upload-link" placeholder="Click URL for new upload (optional)">
+              <button class="small" id="top-add-btn">Add Top Ad</button>
+            </div>
+          </div>
+
+          <div class="col">
+            <label>Bottom Ads</label>
+            <div class="ad-grid" id="bottom-ads-grid"></div>
+
+            <div class="controls">
+              <input type="file" id="bottom-upload" accept="image/*">
+              <input type="text" id="bottom-upload-link" placeholder="Click URL for new upload (optional)">
+              <button class="small" id="bottom-add-btn">Add Bottom Ad</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+          <label class="muted">Enable Ads</label>
+          <label class="switch"><input id="ads-enabled" type="checkbox"><span class="slider"></span></label>
+          <label style="margin-left:8px" class="muted">Rotation interval (ms)</label>
+          <input type="number" id="ads-interval" value="8000" style="width:120px;padding:8px;border-radius:8px;border:1px solid #e6e6e6">
+          <button class="small-ghost" id="save-ads-btn">Save Ads</button>
+        </div>
+
+      </div>
+
+      <!-- ACTIVITY LOG -->
+      <div class="section">
+        <h3>Recent Activity</h3>
+        <p class="muted">Events are recorded by the app into <code>localStorage</code> under the key <strong>qrforge_logs</strong>. Admin can review and export.</p>
+        <div class="log-section" id="activity-log"></div>
+      </div>
+
+      <!-- ADMIN SETTINGS -->
+      <div class="section">
+        <h3>Admin Settings</h3>
+        <label>Current Admin Key (change below)</label>
+        <div class="row">
+          <input type="text" id="current-admin-key" placeholder="New admin key">
+          <button class="small" id="change-key-btn">Change Key</button>
+        </div>
+
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="small-ghost" id="copy-app-url">Copy App URL</button>
+          <button class="small-ghost" id="wipe-user-data">Wipe User Data (non-admin)</button>
+        </div>
+      </div>
+
+      <div class="footer">QRForge Admin • Local mode — Ads & logs stored in browser</div>
+    </div>
+  </div>
+
+<script>
+/* ============================
+  QRForge Admin — Local version
+  Keys & data conventions:
+  - Logs: localStorage key "qrforge_logs" -> JSON array of {ts: number, type: string, payload: object}
+    sample types: "qr_created", "scan", "donate_click", "affiliate_click", "login", "ad_click"
+  - Ads:
+    localStorage key "ads_top"   -> JSON array [{id, image (base64), link, enabled}]
+    localStorage key "ads_bottom"-> JSON array [{id, image (base64), link, enabled}]
+  - Ads enabled flag: "ads_enabled" -> "true"/"false"
+  - Ads interval: "ads_interval" -> number ms
+  - Admin key: not saved server-side; stored in localStorage key "admin_key_hash" (simple hash)
+  ============================ */
+
+/* ---------- Admin key (default) ---------- */
+/* CHANGE THIS if you want a starting key. This constant is only used to initialize admin_key_hash when none exists. */
+const DEFAULT_ADMIN_KEY = "admin-2026"; // you can change before first use
+
+// Simple hash function (not crypto-grade) for local protection
+function simpleHash(s){
+  let h=2166136261>>>0;
+  for(let i=0;i<s.length;i++){h=Math.imul(h^s.charCodeAt(i),16777619)>>>0;}
+  return h.toString(16);
+}
+
+// Initialize default admin key in localStorage if absent
+if(!localStorage.getItem("admin_key_hash")){
+  localStorage.setItem("admin_key_hash", simpleHash(DEFAULT_ADMIN_KEY));
+}
+
+/* ---------- Helpers for logs ---------- */
+function loadLogs(){
+  try{ return JSON.parse(localStorage.getItem("qrforge_logs")||"[]"); }catch(e){ return [];}
+}
+function saveLogs(arr){ localStorage.setItem("qrforge_logs", JSON.stringify(arr)); }
+function pushLog(type, payload={}){
+  const arr = loadLogs();
+  arr.unshift({ ts: Date.now(), type, payload });
+  if(arr.length>1000) arr.length = 1000;
+  saveLogs(arr);
+}
+
+/* ---------- Ads helpers ---------- */
+function loadAds(slot){
+  try{ return JSON.parse(localStorage.getItem(slot) || "[]"); }catch(e){ return []; }
+}
+function saveAdsToStorage(slot, arr){
+  try {
+    localStorage.setItem(slot, JSON.stringify(arr));
+    // Optionally alert the main app to refresh its ads (if listening)
+    window.dispatchEvent(new Event('storage')); 
+  } catch (e) {
+    alert("CRITICAL ERROR: Failed to save ads. Local storage is full. Delete old ads or use smaller images.");
+    throw e; // Re-throw to stop the ad from being added to the UI list
+  }
+}
+
+/* ---------- *** FILE UPLOAD SAFETY CHECK *** ---------- */
+const MAX_AD_FILE_SIZE = 300000; // 300KB limit
+
+function fileToBase64(file, cb){
+    if (file.size > MAX_AD_FILE_SIZE) {
+        alert(`File too large (${Math.round(file.size / 1024)}KB). Please keep ad images under ${Math.round(MAX_AD_FILE_SIZE / 1024)}KB.`);
+        return; // Stop processing the file
+    }
+    
+    const reader = new FileReader();
+    reader.onload = ()=> cb(reader.result);
+    reader.onerror = ()=> alert("Error reading file.");
+    reader.readAsDataURL(file);
+}
+
+/* ---------- UI wiring ---------- */
+const loginArea = document.getElementById("login-area");
+const dashboard = document.getElementById("dashboard");
+const unlockBtn = document.getElementById("unlock-btn");
+const demoUnlock = document.getElementById("demo-unlock");
+const logoutBtn = document.getElementById("logout-btn");
+const backAppBtn = document.getElementById("back-app-btn");
+
+const activityLogEl = document.getElementById("activity-log");
+const statQCreated = document.getElementById("stat-qcreated");
+const statScans = document.getElementById("stat-scans");
+const statDonates = document.getElementById("stat-donates");
+const statAffs = document.getElementById("stat-affs");
+
+const topGrid = document.getElementById("top-ads-grid");
+const bottomGrid = document.getElementById("bottom-ads-grid");
+const topUpload = document.getElementById("top-upload");
+const bottomUpload = document.getElementById("bottom-upload");
+const topAddBtn = document.getElementById("top-add-btn");
+const bottomAddBtn = document.getElementById("bottom-add-btn");
+const topUploadLink = document.getElementById("top-upload-link");
+const bottomUploadLink = document.getElementById("bottom-upload-link");
+const adsEnabledCheckbox = document.getElementById("ads-enabled");
+const adsIntervalInput = document.getElementById("ads-interval");
+const saveAdsBtn = document.getElementById("save-ads-btn");
+
+const exportLogsBtn = document.getElementById("export-logs");
+const importLogsBtn = document.getElementById("import-logs");
+const clearLogsBtn = document.getElementById("clear-logs");
+const changeKeyBtn = document.getElementById("change-key-btn");
+const currentAdminKeyInput = document.getElementById("current-admin-key");
+const copyAppUrlBtn = document.getElementById("copy-app-url");
+const wipeUserDataBtn = document.getElementById("wipe-user-data");
+const clearUserDataBtn = document.getElementById("clear-logs");
+
+const topAddInput = topUpload;
+const bottomAddInput = bottomUpload;
+
+/* ---------- Auth ---------- */
+unlockBtn.addEventListener("click", () => {
+  const provided = document.getElementById("admin-key-input").value || "";
+  const storedHash = localStorage.getItem("admin_key_hash");
+  if(simpleHash(provided) === storedHash){
+    showDashboard();
+    pushLog("login", { method: "admin_unlock" });
+  } else {
+    alert("Invalid admin key");
+  }
+});
+demoUnlock.addEventListener("click", ()=> { showDashboard(); pushLog("login", { method: "demo_unlock" }); });
+
+function showDashboard(){
+  loginArea.style.display = "none";
+  dashboard.style.display = "block";
+  refreshAll();
+}
+
+logoutBtn.addEventListener("click", ()=> {
+  loginArea.style.display = "";
+  dashboard.style.display = "none";
+});
+
+/* ---------- Back to app ---------- */
+backAppBtn.addEventListener("click", ()=> {
+  window.location.href = "index.html";
+});
+
+/* ---------- Ads UI rendering ---------- */
+function renderAdsGrid(){
+  const top = loadAds("ads_top");
+  const bottom = loadAds("ads_bottom");
+
+  function makeBox(adArray, index, slotName){
+    const ad = adArray[index];
+    const id = ad?.id || null;
+    const wrapper = document.createElement("div");
+    wrapper.className = "ad-slot-box";
+    if(ad){
+      const img = document.createElement("img"); img.src = ad.image; wrapper.appendChild(img);
+      const a = document.createElement("div"); a.style.marginTop="6px"; a.innerHTML = `<div style="font-size:12px;color:#333">${ad.link || "<no link>"}</div>`; wrapper.appendChild(a);
+      const controls = document.createElement("div"); controls.style.marginTop="8px"; controls.style.display="flex"; controls.style.gap="6px"; controls.style.justifyContent="center";
+      const del = document.createElement("button"); del.className="small-ghost"; del.textContent="Delete";
+      del.onclick = ()=>{ if(confirm("Remove this ad?")){ adArray.splice(index,1); saveAdsToStorage(slotName, adArray); renderAdsGrid(); } };
+      const toggle = document.createElement("button"); toggle.className="small-ghost"; toggle.textContent = (ad.enabled ? "Disable" : "Enable");
+      toggle.onclick = ()=>{ ad.enabled = !ad.enabled; saveAdsToStorage(slotName, adArray); renderAdsGrid(); };
+      const up = document.createElement("button"); up.className="small-ghost"; up.textContent="↑"; up.onclick = ()=>{
+        if(index>0){ adArray.splice(index-1,0,adArray.splice(index,1)[0]); saveAdsToStorage(slotName, adArray); renderAdsGrid(); }
+      };
+      const down = document.createElement("button"); down.className="small-ghost"; down.textContent="↓"; down.onclick = ()=>{
+        if(index < adArray.length-1){ adArray.splice(index+1,0,adArray.splice(index,1)[0]); saveAdsToStorage(slotName, adArray); renderAdsGrid(); }
+      };
+      controls.appendChild(up); controls.appendChild(down); controls.appendChild(toggle); controls.appendChild(del);
+      wrapper.appendChild(controls);
+    } else {
+      wrapper.innerHTML = "<div style='opacity:.6'>Empty slot</div>";
+    }
+    return wrapper;
+  }
+
+  // Render top grid (3 slots)
+  topGrid.innerHTML = "";
+  for(let i=0;i<3;i++){
+    topGrid.appendChild(makeBox(top, i, "ads_top"));
+  }
+
+  bottomGrid.innerHTML = "";
+  for(let i=0;i<3;i++){
+    bottomGrid.appendChild(makeBox(bottom, i, "ads_bottom"));
+  }
+
+  // populate controls from saved values
+  document.getElementById("ads-enabled").checked = localStorage.getItem("ads_enabled")==="true";
+  const interval = localStorage.getItem("ads_interval") || "8000";
+  adsIntervalInput.value = interval;
+}
+
+/* ---------- Add ad from file input (UPDATED) ---------- */
+topAddBtn.addEventListener("click", ()=>{
+  const f = topAddInput.files && topAddInput.files[0];
+  if(!f) return alert("Choose an image to upload (top)");
+  
+  // Custom check and clear logic
+  if(f.size > MAX_AD_FILE_SIZE) {
+      topAddInput.value = ""; // Clear input after failure
+      return; 
+  }
+
+  fileToBase64(f, (b64)=>{
+    const arr = loadAds("ads_top");
+    const link = (topUploadLink.value || "").trim();
+    
+    arr.push({ id: "top_"+Date.now(), image: b64, link: link || "", enabled: true });
+    
+    try {
+        saveAdsToStorage("ads_top", arr);
+        topAddInput.value = "";
+        topUploadLink.value = "";
+        renderAdsGrid();
+        pushLog("ad_upload", { slot: "top", id: arr[arr.length-1].id });
+    } catch(e) {
+        // saveAdsToStorage failed due to quota limit, UI reflects the true state
+        renderAdsGrid();
+    }
+  });
+});
+
+bottomAddBtn.addEventListener("click", ()=>{
+  const f = bottomAddInput.files && bottomAddInput.files[0];
+  if(!f) return alert("Choose an image to upload (bottom)");
+
+  // Custom check and clear logic
+  if(f.size > MAX_AD_FILE_SIZE) {
+      bottomAddInput.value = ""; // Clear input after failure
+      return; 
+  }
+  
+  fileToBase64(f, (b64)=>{
+    const arr = loadAds("ads_bottom");
+    const link = (bottomUploadLink.value || "").trim();
+    
+    arr.push({ id: "bottom_"+Date.now(), image: b64, link: link || "", enabled: true });
+    
+    try {
+        saveAdsToStorage("ads_bottom", arr);
+        bottomAddInput.value = "";
+        bottomUploadLink.value = "";
+        renderAdsGrid();
+        pushLog("ad_upload", { slot: "bottom", id: arr[arr.length-1].id });
+    } catch(e) {
+        // saveAdsToStorage failed due to quota limit, UI reflects the true state
+        renderAdsGrid();
+    }
+  });
+});
+
+/* ---------- Save ads button ---------- */
+saveAdsBtn.addEventListener("click", ()=>{
+  const enabled = document.getElementById("ads-enabled").checked;
+  localStorage.setItem("ads_enabled", enabled ? "true" : "false");
+  const interval = Number(adsIntervalInput.value) || 8000;
+  localStorage.setItem("ads_interval", interval.toString());
+  alert("Ad settings saved");
+  pushLog("ad_settings_saved", { enabled, interval });
+});
+
+/* ---------- Render logs & stats ---------- */
+function refreshAll(){
+  renderAdsGrid();
+  renderLogs();
+  renderStats();
+  loadLogoPreview(); // <-- INSERT THIS NEW LINE
+}
+
+/* ---------- Logo Management (NEW BLOCK) ---------- */
+const logoUploadInput = document.getElementById('logo-upload');
+const resetLogoBtn = document.getElementById('reset-logo-btn');
+
+function loadLogoPreview() {
+    const stored = localStorage.getItem('qrforge_customLogo');
+    const img = document.getElementById('current-logo-preview');
+    if (stored) {
+        img.src = stored;
+        img.style.display = 'block';
+    } else {
+        img.style.display = 'none';
+    }
+}
+
+logoUploadInput.addEventListener('change', function() {
+    const file = this.files && this.files[0];
+    if (!file) return;
+
+    // Safety Check: Use the existing MAX_AD_FILE_SIZE (300KB) defined above
+    if(file.size > MAX_AD_FILE_SIZE) {
+        alert(`Logo file too large (${Math.round(file.size / 1024)}KB). Keep images under 300KB.`);
+        this.value = ''; // Clear input
+        return; 
+    }
+
+    fileToBase64(file, (base64) => {
+        if (!base64) return;
+
+        try {
+            // Note: We are using 'qrforge_customLogo' as the key to store it
+            localStorage.setItem('qrforge_customLogo', base64);
+            loadLogoPreview();
+            pushLog("logo_updated", {});
+            alert("Logo updated! Remember to refresh the main app (index.html).");
+            this.value = ''; // Clear input
+        } catch (e) {
+            alert("Error saving logo. Local Storage quota likely exceeded.");
+            this.value = ''; // Clear input
+        }
+    });
+});
+
+resetLogoBtn.addEventListener('click', () => {
+    localStorage.removeItem('qrforge_customLogo');
+    loadLogoPreview();
+    alert("Logo reset to default.");
+    pushLog("logo_reset", {});
+});
+/* ------------------------------------------- */
+
+function renderLogs(){
+  const logs = loadLogs();
+  const out = [];
+  activityLogEl.innerHTML = "";
+  if(!logs.length){ activityLogEl.innerHTML = "<div class='log-entry'>No activity yet</div>"; return; }
+  logs.slice(0,200).forEach(l => {
+    const d = new Date(l.ts).toLocaleString();
+    const row = document.createElement("div");
+    row.className = "log-entry";
+    row.textContent = `${d} | ${l.type} | ${JSON.stringify(l.payload)}`;
+    activityLogEl.appendChild(row);
+  });
+}
+
+function renderStats(){
+  const logs = loadLogs();
+  const qcreated = logs.filter(l=>l.type==="qr_created").length;
+  const scans = logs.filter(l=>l.type==="scan").length;
+  const dons = logs.filter(l=>l.type==="donate_click").length;
+  const affs = logs.filter(l=>l.type==="affiliate_click").length;
+
+  statQCreated.textContent = qcreated;
+  statScans.textContent = scans;
+  statDonates.textContent = dons;
+  statAffs.textContent = affs;
+}
+
+/* ---------- Export / Import logs ---------- */
+exportLogsBtn.addEventListener("click", ()=>{
+  const data = JSON.stringify({
+    logs: loadLogs(),
+    ads_top: loadAds("ads_top"),
+    ads_bottom: loadAds("ads_bottom"),
+    ads_enabled: localStorage.getItem("ads_enabled")||"false",
+    ads_interval: localStorage.getItem("ads_interval")||"8000"
+  }, null, 2);
+  const a = document.createElement("a");
+  a.href = "data:application/json;charset=utf-8," + encodeURIComponent(data);
+  a.download = "qrforge_admin_export.json";
+  a.click();
+});
+
+importLogsBtn.addEventListener("click", ()=>{
+  const raw = prompt("Paste admin export JSON here to import (this will overwrite ads & logs).");
+  if(!raw) return;
+  try{
+    const obj = JSON.parse(raw);
+    if(Array.isArray(obj.logs)) localStorage.setItem("qrforge_logs", JSON.stringify(obj.logs));
+    if(Array.isArray(obj.ads_top)) localStorage.setItem("ads_top", JSON.stringify(obj.ads_top));
+    if(Array.isArray(obj.ads_bottom)) localStorage.setItem("ads_bottom", JSON.stringify(obj.ads_bottom));
+    if(obj.ads_enabled) localStorage.setItem("ads_enabled", obj.ads_enabled);
+    if(obj.ads_interval) localStorage.setItem("ads_interval", obj.ads_interval);
+    alert("Imported successfully");
+    refreshAll();
+  }catch(e){ alert("Import failed: invalid JSON"); }
+});
+
+clearLogsBtn.addEventListener("click", ()=>{
+  if(!confirm("Clear logs? This cannot be undone.")) return;
+  localStorage.removeItem("qrforge_logs");
+  renderLogs();
+  renderStats();
+});
+
+/* ---------- Change admin key ---------- */
+changeKeyBtn.addEventListener("click", ()=>{
+  const val = (currentAdminKeyInput.value || "").trim();
+  if(!val) return alert("Enter a new admin key to set");
+  if(!confirm("Change admin key? You will need to use the new key to login next time.")) return;
+  localStorage.setItem("admin_key_hash", simpleHash(val));
+  currentAdminKeyInput.value = "";
+  alert("Admin key changed");
+  pushLog("admin_key_changed", {});
+});
+
+/* ---------- Copy app URL ---------- */
+copyAppUrlBtn.addEventListener("click", ()=>{
+  const url = location.href.replace(/admin\.html$/,"index.html");
+  navigator.clipboard.writeText(url);
+  alert("App URL copied:\n\n"+url);
+});
+
+/* ---------- Wipe user data ---------- */
+wipeUserDataBtn.addEventListener("click", ()=>{
+  if(!confirm("Wipe user data stored in localStorage? This will clear app logs, ads, and user local state (NOT admin key).")) return;
+  const KEEP = ["admin_key_hash"]; // keep admin key
+  const keys = Object.keys(localStorage);
+  keys.forEach(k=>{ if(!KEEP.includes(k)) localStorage.removeItem(k); });
+  alert("User data wiped. Admin key preserved.");
+  pushLog("admin_wipe", {});
+  refreshAll();
+});
+
+/* ---------- Utilities for index.html integration (exposed for app) ---------- */
+/* The app (index.html) should call these methods by adding code like:
+   // when user generates QR
+   pushLog('qr_created', { title: nickname || '', url });
+
+   // when a scan occurs (server redirect or client simulate)
+   pushLog('scan', { qrId: id || null, userAgent: navigator.userAgent });
+
+   // when donate button clicked
+   pushLog('donate_click', { method: 'paypal' });
+
+   // when affiliate login clicked
+   pushLog('affiliate_click', { link: 'https://...' });
+
+   // when ad clicked (index.html should call pushLog('ad_click', { slot:'top', adId: '...' }))
+*/
+window.qrforge_admin_pushLog = pushLog;
+window.qrforge_admin_loadAds = loadAds;
+
+/* ---------- On load: if already "authorized" (demo unlock used) show dashboard? ---------- */
+document.addEventListener("DOMContentLoaded", ()=>{
+  // if the page has a flag (useful for development) show dashboard
+  if(localStorage.getItem("admin_demo_open")==="true"){ showDashboard(); }
+  renderAdsGrid();
+  renderLogs();
+  renderStats();
+});
+</script>
+</body>
+</html>

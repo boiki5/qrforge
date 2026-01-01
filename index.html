@@ -1,0 +1,1301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QRForge: Instant Static QR Codes</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs@master/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --pink-light: #fbc2eb; --pink-mid: #f8a5e2; --pink-dark: #e91e63;
+      --blue-light: #e3f2fd; --blue-dark: #1976d2;
+      --bg-light: linear-gradient(135deg, #fff1f8, #fce4ec 40%, #f8bbd0);
+    }
+    * { box-sizing: border-box; }
+    
+    body { 
+      margin:0; min-height:100vh; background:var(--bg-light); 
+      font-family:'Poppins', sans-serif; 
+      color:#333; display:flex; flex-direction:column; transition:background .4s; 
+    }
+    body.dark { background:#1a0033; color:#eee; }
+
+    header { display:flex; justify-content:space-between; align-items:center; padding:16px 24px; background:rgba(255,255,255,0.9); backdrop-filter:blur(10px); position:sticky; top:0; z-index:100; flex-wrap:wrap; gap:12px; }
+    body.dark header { background:rgba(0,0,0,0.5); }
+    
+    .logo-container { display:flex; flex-direction: column; justify-content: center; }
+    .logo { display:flex; align-items:center; gap:12px; font-weight:700; font-size:1.4rem; color:var(--pink-dark); min-height:56px; }
+    .tagline { font-size:0.85rem; opacity:0.8; margin-left:56px; margin-top:-6px; font-weight: 500; }
+    
+    .header-right { display:flex; gap:10px; flex-wrap:wrap; }
+
+    .btn {
+      padding:10px 18px; border-radius:12px; font-weight:600; cursor:pointer; border:none; font-size:0.9rem; transition:all .25s;
+      display:flex; align-items:center; justify-content: center; gap:6px; white-space:nowrap;
+      font-family:'Poppins', sans-serif;
+    }
+    .btn-primary { background:var(--pink-dark); color:white; }
+    .btn-primary:hover { background:#c2185b; transform:translateY(-1px); }
+    .btn-mode { background:var(--blue-light); color:var(--blue-dark); }
+    body.dark .btn-mode { background:var(--blue-dark); color:white; }
+    
+    #auth-btn.btn-secondary { background:rgba(255,255,255,0.4); border:1px solid rgba(255,255,255,0.5); }
+    #auth-btn.logged-in { background:#4caf50; color: white; }
+
+    main { padding:50px 20px; text-align:center; max-width:560px; margin:auto; flex:1; }
+    
+    input[type="text"], input[type="email"], input[type="password"] { 
+      width:100%; padding:14px; border-radius:12px; border:1px solid rgba(255,255,255,0.6); 
+      background:rgba(255,255,255,0.4); font-size:0.95rem; margin:10px 0; 
+      font-family:'Poppins', sans-serif;
+    }
+    
+    .input-label { display:block; text-align:left; font-weight:600; color:var(--pink-dark); margin-bottom:6px; font-size: 0.9rem; }
+    h1 { font-size:2.2rem; margin-bottom:30px; letter-spacing: -0.5px; }
+
+    /* Wider ad slots */
+    .ad-slot { 
+      margin:35px auto; 
+      width: 100%;
+      max-width: 728px;
+      min-height: 90px;
+      background:rgba(255,255,255,0.25); 
+      border:2px dashed rgba(255,255,255,0.5); 
+      border-radius:14px; 
+      display:grid; 
+      place-items:center; 
+      font-style:italic; 
+      opacity:0.75; 
+    }
+    
+    .ad-slot img { 
+        max-width:100%; 
+        max-height: 90px;
+        object-fit: contain;
+        cursor:pointer; 
+        display:block; 
+    }
+    
+    /* Info text styling */
+    .info-text {
+      margin-top: 30px;
+      padding: 20px;
+      background: rgba(255,255,255,0.3);
+      border-radius: 12px;
+      text-align: left;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+    body.dark .info-text {
+      background: rgba(255,255,255,0.1);
+    }
+    .info-text p {
+      margin: 8px 0;
+    }
+    .info-text strong {
+      color: var(--pink-dark);
+    }
+
+    /* Modals */
+    .modal {
+      display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(12px);
+      justify-content:center; align-items:center; z-index:1000;
+    }
+    .modal-content {
+      background:white; padding:36px 28px; border-radius:24px; max-width:420px; width:90%; text-align:center; position:relative;
+      box-shadow:0 30px 80px rgba(0,0,0,0.4); max-height: 85vh; overflow-y: auto;
+    }
+    body.dark .modal-content { background:#222; color: #fff; }
+    .close { position:absolute; top:12px; right:16px; font-size:2rem; cursor:pointer; opacity:0.6; }
+
+    /* NEW: Donation Modal Styles */
+    .donation-box {
+      max-width: 420px;
+      background: var(--card-bg, #fff);
+      padding: 30px;
+      border-radius: 20px;
+      text-align: left;
+    }
+    body.dark .donation-box {
+      background: #222;
+    }
+    .donation-text {
+      font-size: 15px;
+      margin-bottom: 20px;
+      opacity: 0.85;
+      line-height: 1.5;
+    }
+    .donation-option {
+      display: flex;
+      align-items: center;
+      padding: 14px 16px;
+      border: 2px solid #eee;
+      border-radius: 12px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    body.dark .donation-option {
+      border-color: #444;
+    }
+    .donation-option:hover {
+      border-color: var(--pink-dark);
+      background: rgba(233, 30, 99, 0.05);
+    }
+    .donation-option input {
+      margin-right: 12px;
+      transform: scale(1.2);
+    }
+    .donation-footnote {
+      font-size: 13px;
+      opacity: 0.7;
+      margin-top: 16px;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* Feature Popup Styles */
+    .feature-popup {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 320px;
+      z-index: 999;
+      border-left: 4px solid var(--pink-dark);
+      animation: slideInUp 0.5s ease-out;
+    }
+    body.dark .feature-popup {
+      background: #222;
+      border-left: 4px solid var(--pink-mid);
+    }
+    @keyframes slideInUp {
+      from { transform: translateY(100px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .feature-popup h3 {
+      margin: 0 0 10px 0;
+      color: var(--pink-dark);
+      font-size: 1.1rem;
+    }
+    .feature-popup p {
+      margin: 0 0 15px 0;
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+    .feature-popup .btn {
+      width: 100%;
+      margin: 5px 0;
+    }
+    .close-popup {
+      position: absolute;
+      top: 10px;
+      right: 12px;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      opacity: 0.6;
+    }
+
+    /* Affiliate Grid */
+    .affiliate-grid { display: flex; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .affiliate-option {
+       padding: 16px; border-radius: 12px; border: 2px solid rgba(0,0,0,0.1);
+       background: rgba(0,0,0,0.02); cursor: pointer; transition: all 0.3s;
+       text-align: left; font-weight: 600; display: flex; align-items: center; color: #333;
+    }
+    body.dark .affiliate-option { border-color: rgba(255,255,255,0.2); background: rgba(255,255,255,0.05); color: #fff; }
+    .affiliate-option:hover { border-color: var(--pink-dark); background: rgba(233,30,99,0.05); transform: scale(1.02); }
+    .affiliate-icon { margin-right: 12px; font-size: 1.2rem; }
+
+    /* Share Buttons Grid */
+    .share-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    .btn-wa { background: #25D366; color: white; }
+    .btn-fb { background: #1877F2; color: white; }
+    .btn-x { background: #000000; color: white; }
+    body.dark .btn-x { background: #ffffff; color: black; }
+    .btn-print { background: #ff9800; color: white; }
+
+    footer { text-align:center; padding:20px; font-size:0.9rem; margin-top: 40px; }
+    footer a { color:inherit; text-decoration:none; margin:0 8px; cursor: pointer; opacity: 0.8; }
+    footer a:hover { text-decoration:underline; opacity: 1; }
+
+    /* Fix header alignment on mobile */
+    @media (max-width: 600px) {
+      header {
+        display: flex;
+        flex-direction: column;
+        align-items: center !important;
+        text-align: center !important;
+        gap: 12px;
+      }
+
+      .logo-container {
+        align-items: center !important;
+        text-align: center !important;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .logo {
+        justify-content: center !important;
+        align-items: center !important;
+        display: flex;
+        gap: 8px;
+      }
+
+      .tagline {
+        text-align: center !important;
+        margin-top: 4px;
+      }
+
+      .header-right {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center !important;
+        gap: 10px;
+        width: 100%;
+      }
+
+      .header-right .btn {
+        flex: 0 0 auto;
+      }
+    }
+
+    .dynamic-upsell {
+      margin-top: 25px;
+      background: #fff4e5;
+      padding: 16px;
+      border-radius: 12px;
+      text-align: center;
+      border: 1px solid #ffd9b3;
+    }
+
+    body.dark .dynamic-upsell {
+      background: rgba(255, 152, 0, 0.1);
+      border-color: rgba(255, 152, 0, 0.3);
+    }
+
+    .dynamic-upsell p {
+      margin: 0 0 10px 0;
+      font-size: 0.95rem;
+      color: #b65b00;
+      font-weight: 600;
+    }
+
+    body.dark .dynamic-upsell p {
+      color: #ffb74d;
+    }
+
+    .dynamic-upsell .btn-secondary {
+      background-color: #ff9800;
+      color: white;
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      display: inline-block;
+    }
+
+    /* Placeholder styles */
+    body.light input::placeholder {
+      color: #666;
+    }
+
+    body.dark input::placeholder {
+      color: #ccc;
+    }
+
+    /* Light */
+    body.light #auth-btn {
+      color: #222;
+    }
+
+    /* Dark */
+    body.dark #auth-btn {
+      color: #4ade80;
+    }
+
+    /* Modal legal content */
+    .modal-content h3 {
+        margin-top: 0;
+        color: var(--pink-dark);
+    }
+
+    .modal-content a.legal-link {
+        display: inline-block;
+        padding: 8px 10px;
+        margin: 4px 6px;
+        font-weight: 600;
+    }
+
+    .modal-content #legal-text-content p {
+        text-align: left;
+        margin: 10px 0;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+  </style>
+</head>
+<body class="light">
+
+  <header>
+    <div class="logo-container">
+      <div class="logo" id="logo-container">
+        <!-- Logo will be loaded from localStorage or default -->
+        <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8" style="width:40px;height:40px;">
+            <rect x="15" y="15" width="25" height="25" rx="4"/>
+            <rect x="60" y="15" width="25" height="25" rx="4"/>
+            <rect x="15" y="60" width="25" height="25" rx="4"/>
+            <path d="M50 30 H70 V50 H50 Z" fill="currentColor"/>
+        </svg>
+        <strong>QRForge</strong>
+      </div>
+      <div class="tagline">Generate For Free. Own Forever.</div>
+    </div>
+    <div class="header-right">
+      <button id="donate-btn" class="btn btn-primary">Donate</button>
+      <button id="toggle-mode" class="btn btn-mode">Dark/Light</button>
+      <button id="auth-btn" class="btn btn-secondary">Login</button>
+    </div>
+  </header>
+
+  <div class="ad-slot" id="ad-top-slot">
+    <a id="ad-top-link" href="#" target="_blank">
+      <img id="ad-top-img" src="" alt="Advertisement">
+    </a>
+  </div>
+
+  <main>
+    <h1>Create Your Static QR Code</h1>
+    <div class="input-group">
+      <label class="input-label">YOUR URL</label>
+      <input type="text" id="url-input" placeholder="https://example.com">
+    </div>
+    <div class="input-group">
+      <label class="input-label">CUSTOMIZE YOUR QR CODE (optional, max 8 chars)</label>
+      <input type="text" id="nickname-input" placeholder="e.g. I💖MyShop">
+    </div>
+    <button id="generate-btn" class="btn btn-primary" style="width:100%; padding:18px; font-size:1.2rem; margin-top:20px;">
+      Generate QR Code
+    </button>
+    <p id="login-prompt" style="margin-top:16px; color:#d32f2f; font-weight:600; display:none;">
+      Login Required → <span style="text-decoration:underline; cursor:pointer;" onclick="openModal('login-modal')">Click here</span>
+    </p>
+
+    <div class="info-text">
+      <p><strong>Static QR Codes:</strong> Permanent, uneditable, forever yours.</p>
+      <p><strong>Typos:</strong> Double-check — no changes possible after creation.</p>
+      <p><strong>Long URLs:</strong> May result in denser, harder-to-scan codes.</p>
+    </div>
+
+    <div class="dynamic-upsell">
+      <p>Want editable and trackable QR Codes?</p>
+      <a href="https://forms.gle/4hFKs1VZ3wAp6EqCA" target="_blank" class="btn btn-secondary">
+        Coming Soon! Dynamic QR Code Generator - Join the Waitlist
+      </a>
+    </div>
+
+    <div class="ad-slot" id="ad-bottom-slot">
+      <a id="ad-bottom-link" href="#" target="_blank">
+        <img id="ad-bottom-img" src="" alt="Advertisement">
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    <a onclick="openModal('terms-modal')">Terms</a> •
+    <a onclick="openModal('rules-modal')">Platform Rules</a> •
+    <a onclick="openModal('privacy-modal')">Privacy</a> •
+    <a onclick="openModal('disclaimer-modal')">Disclaimer</a> •
+    <a onclick="openModal('faqs-modal')">FAQs</a> •
+    <a onclick="openModal('about-modal')">About</a>
+  </footer>
+
+  <!-- ========================= -->
+  <!-- SOFT DONATION MODAL -->
+  <!-- ========================= -->
+  <div id="donation-modal" class="modal">
+    <div class="modal-content donation-box">
+      <h2>❤️ Support QRForge (Optional)</h2>
+
+      <p class="donation-text">
+        I do my best to keep this tool free to use.
+        If QRForge helped you today and you'd like it to stay online,
+        consider a small donation.
+      </p>
+
+      <form id="donation-form">
+        <label class="donation-option">
+          <input type="radio" name="donation" value="none" checked>
+          Not today, thanks
+        </label>
+
+        <label class="donation-option">
+          <input type="radio" name="donation" value="3">
+          $3 — buy me a coffee
+        </label>
+
+        <label class="donation-option">
+          <input type="radio" name="donation" value="7">
+          $7 — buy my wife a coffee
+        </label>
+
+        <label class="donation-option">
+          <input type="radio" name="donation" value="20">
+          $20 — help keep QRForge running
+        </label>
+
+        <label class="donation-option">
+          <input type="radio" name="donation" value="50">
+          $50 — make a real difference
+        </label>
+      </form>
+
+      <button class="btn btn-primary" id="donation-continue" style="width:100%; margin-top:20px; padding:16px;">
+        Continue
+      </button>
+
+      <p class="donation-footnote">
+        This tool stays 100% free — your QR code will generate either way.
+      </p>
+    </div>
+  </div>
+
+  <!-- Feature Popup -->
+  <div id="feature-popup" class="feature-popup" style="display: none;">
+    <button class="close-popup" onclick="closeFeaturePopup()">×</button>
+    <h3 id="popup-title">🚀 New Feature!</h3>
+    <p id="popup-message">Check out our latest updates and tips to get the most from QRForge.</p>
+    <button class="btn btn-primary" onclick="handlePopupAction()" id="popup-action-btn">Learn More</button>
+    <button class="btn btn-secondary" onclick="closeFeaturePopup()" style="margin-top: 8px;">Maybe Later</button>
+  </div>
+
+  <!-- Existing modals (login, QR, legal) -->
+  <div id="login-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('login-modal')">×</span>
+      <h2>Support Us to Login</h2>
+      <p style="opacity: 0.7; margin-bottom: 20px;">Click any partner link below to unlock the free QR generator instantly.</p>
+      
+      <div class="affiliate-grid">
+        <div class="affiliate-option" onclick="handleAffiliateLogin('https://getmocha.com/?o_id=01986133-4ccc-796c-a427-7bd97ee6a755')">
+            <span class="affiliate-icon">📱</span> Mocha: AI-powered App Builder
+        </div>
+        <div class="affiliate-option" onclick="handleAffiliateLogin('https://udimi.com/a/gzd45')">
+            <span class="affiliate-icon">🚀</span> Udimi: Qualified Leads
+        </div>
+        <div class="affiliate-option" onclick="handleAffiliateLogin('https://www.canva.com/join/zwv-sns-jhz')">
+            <span class="affiliate-icon">🌐</span> Canva: Design with Passion
+        </div>
+        <div class="affiliate-option" onclick="handleAffiliateLogin('https://google.com')">
+            <span class="affiliate-icon">⚡</span> Productivity Apps
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="qr-modal" class="modal">
+    <div class="modal-content">
+      <span class="close" onclick="closeModal('qr-modal')">×</span>
+      <h2 style="color:var(--pink-dark); margin:16px 0;">Your QR Code is Ready!</h2>
+      <p style="opacity:0.8; margin-bottom:24px;">Download or Share it instantly.</p>
+
+      <div id="qr-container" style="margin:20px auto; display:flex; justify-content:center;">
+        <div id="qr-canvas"></div>
+      </div>
+      
+      <p id="custom-link-msg" style="font-weight:600; font-size:1.1rem; margin:20px 0;"></p>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:20px;">
+        <button onclick="downloadPNG()"  class="btn" style="background:#e91e63;">Download PNG</button>
+        <button onclick="downloadJPG()"  class="btn" style="background:#ad1457;">Download JPG</button>
+      </div>
+
+      <!-- Print on Demand Button -->
+      <button onclick="openPrintOnDemand()" class="btn btn-print" style="width:100%; margin-top:12px;">
+        🖨️ Print on Demand
+      </button>
+
+      <h3 style="font-size:1rem; margin:20px 0 10px; opacity:0.6; text-transform:uppercase;">Share Now</h3>
+      <div class="share-grid">
+        <button onclick="shareWhatsApp()" class="btn btn-wa">WhatsApp</button>
+        <button onclick="shareTwitter()" class="btn btn-x">Share on X</button>
+        <button onclick="shareFacebook()" class="btn btn-fb">Facebook</button>
+        <button onclick="copyImage()" class="btn" style="background:#6a1b9a; color:white;">Copy Image</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Legal modals (abbreviated for space) -->
+  <div id="terms-modal" class="modal"><div class="modal-content" style="text-align: left;"><span class="close" onclick="closeModal('terms-modal')">×</span><h2>Terms of Use</h2><p><p><strong>Last Updated: December 18, 2025</strong></p><p><h3>1. Acceptance of Terms</h3>
+      <p>By accessing and using QRForge ("the Service"), you accept and agree to be bound by these Terms of Use. If you disagree with any part, please discontinue use immediately.</p>
+      
+      <h3>2. Service Description</h3>
+      <p>QRForge provides free static QR code generation. Static QR codes permanently encode your URL and cannot be edited after creation. The Service is provided "as is" without warranties.</p>
+      
+      <h3>3. User Responsibilities</h3>
+      <p>You agree to:</p>
+      <ul>
+        <li>Verify URL accuracy before generating QR codes</li>
+        <li>Use the Service for lawful purposes only</li>
+        <li>Not generate codes for malicious, illegal, or harmful content</li>
+        <li>Accept full responsibility for generated QR codes and their usage</li>
+      </ul>
+      
+      <h3>4. Intellectual Property</h3>
+      <p>You retain all rights to the URLs and content you encode. QRForge claims no ownership over your generated QR codes.</p>
+      
+      <h3>5. Limitation of Liability</h3>
+      <p>QRForge is not liable for:</p>
+      <ul>
+        <li>Typos or errors in encoded URLs</li>
+        <li>QR code scanning failures or compatibility issues</li>
+        <li>Damages from printed or distributed QR codes</li>
+        <li>Third-party content accessed via your QR codes</li>
+      </ul>
+      
+      <h3>6. Modifications</h3>
+      <p>We reserve the right to modify these terms at any time. Continued use constitutes acceptance of changes.</p>
+    </div></p></div></div>
+<div id="rules-modal" class="modal"><div class="modal-content" style="text-align: left;"><span class="close" onclick="closeModal('rules-modal')">×</span><h2>Platform Rules</h2><p><p><strong>Last Updated: December 18, 2025</strong></p><p><h3>To ensure QR Forge remains a safe, trusted, and operational platform for everyone, please follow these important guidelines. 
+</h3>
+      <p><p><strong>Important:</strong> At the moment this is an open platform. It is incmubent upon users to avoid generating QR code that redirects to banned sites/URL or violates rules listed below.
+</p><h3>What's Not Allowed To Generate QR Codes for:  
+</h3>
+<h3>1. Violent content</h3>
+Content that threatens, encourages, or celebrates violence in any shape or form.
+Promotions or support organizations known for violent activities.
+<h3>2. Child Harm</h3>
+Any content involving, mentioning, or promoting harm or exploitation of children.
+<h3>3. Abuse and Harassment</h3>
+Abusive content or engagement in targeted harassment of individuals or groups.
+<h3>4. Discrimination and Hate</h3>
+Content that attacks or demeans anyone based on race, ethnicity, nationality, sexual orientation, gender, religion, age, disability, or health status.
+<h3>5. Self-Harm and Suicide</h3>
+Distributing, promotion, encouragement, or glorification of self-harm, suicide, or any content related to it.
+<h3>6. Adult Content</h3>
+Pornography and pay-for-view adult content.
+Content promoting trafficking, solicitation, or escort services.
+Exceptions:
+Sites about adult products (such as sex toys, adult literature, adult art) are allowed if they follow all other guidelines.
+AI-companion sites are allowed if they follow all other guidelines.
+<h3>7. Deepfakes And Misinformation</h3>
+Creation, sharing, or promotion of deepfake content.
+Spreading or creation of misinformation, fake news, sites pretending to be trustworthy news sources sharing misinformation.
+<h3>8. Illegal or Restricted Goods and Services</h3>
+Selling or promoting illegal drugs, unlicensed weapons, counterfeit goods, stolen property, or unlicensed gambling or financial services.
+Scams, ponzi schemes, fake coupon campaigns, other misleading services misleading people with false promises of payouts.
+<h3>9. Private Information</h3>
+Publishing or sharing someone's private information (like home address, phone number, or ID documents) without their consent.
+<h3>10. Non-Consensual Images</h3>
+Posting or sharing other individuals' images or videos of someone (incl. but not limited to intimate images) without their permission.
+<h3>11. Security and Safety</h3>
+Distribution, sharing, promotion of stolen login details, passwords, or other sensitive data.
+Any content related to malicious hacking, phishing, malware, or illegal impersonating others.
+<h3>12. Copyright and Trademark</h3>
+Content that infringes on someone else's copyright or trademark.
+Creation of one-to-one copies of existing commercial or known sites and digital services that use existing names and logos of known businesses. Such sites will be treated as malicious, pretending to be something else, and removed from the platform.
+  <p>If you see content that violates these guidelines, please report it to bkeaitaya@gmail.com. Thank you for helping us keep QR Forge a safe and trusted platform for everyone who needs QR codes!</p>
+   </div></p></div></div>
+
+  <div id="privacy-modal" class="modal"><div class="modal-content" style="text-align: left;"><span class="close" onclick="closeModal('privacy-modal')">×</span><h2>Privacy Policy</h2><p><p><strong>Last Updated: December 18, 2025</strong></p>
+     <h3>1. No Data Collection</h3>
+      <p>QRForge operates with a strict no-data-collection policy. We do not:</p>
+      <ul>
+        <li>Store your URLs, QR codes, or personal information</li>
+        <li>Use tracking cookies or analytics</li>
+        <li>Share or sell user data to third parties</li>
+        <li>Require user accounts or registration</li>
+      </ul>
+      
+      <h3>2. Local Processing</h3>
+      <p>All QR code generation happens locally in your browser. Your data never leaves your device, ensuring complete privacy.</p>
+      
+      <h3>3. Affiliate Links</h3>
+      <p>The login system uses affiliate links. When you click these links:</p>
+      <ul>
+        <li>You are redirected to third-party websites</li>
+        <li>QRForge may receive commission on qualifying purchases</li>
+        <li>Your interaction with these sites is governed by their privacy policies</li>
+      </ul>
+      
+      <h3>4. Browser Storage</h3>
+      <p>We only use localStorage to remember your login status and dark/light mode preference. This data remains on your device.</p>
+      
+      <h3>5. Third-Party Services</h3>
+      <p>We use Supabase for admin authentication only. Regular users never interact with external databases.</p>
+    </div></p></div></div>
+  
+  <div id="disclaimer-modal" class="modal"><div class="modal-content" style="text-align: left;"><span class="close" onclick="closeModal('disclaimer-modal')">×</span><h2>Disclaimer</h2><p> <p><strong>Last Updated: December 18, 2025</strong></p>
+      
+      <h3>🔒 Static QR Code Limitations</h3>
+      <p><strong>Important:</strong> QRForge generates STATIC QR codes. Please understand:</p>
+      <ul>
+        <li><strong>Permanent Encoding:</strong> Once generated, the URL is permanently embedded and cannot be changed</li>
+        <li><strong>No Error Correction:</strong> Typos in URLs require generating a completely new QR code</li>
+        <li><strong>Print Carefully:</strong> Verify URLs before printing or mass distribution</li>
+        <li><strong>Technology Limitations:</strong> QR code scanning success depends on device cameras, lighting, and print quality</li>
+      </ul>
+      
+      <h3>💰 Affiliate Disclosure</h3>
+      <p>QRForge is free to use. We're supported through:</p>
+      <ul>
+        <li><strong>Affiliate Commissions:</strong> Login passwords are affiliate links</li>
+        <li><strong>Voluntary Support:</strong> Clicking these links supports our free service</li>
+        <li><strong>No Extra Cost:</strong> You pay nothing extra - commissions come from merchants</li>
+        <li><strong>Transparency:</strong> We clearly disclose this relationship</li>
+      </ul>
+      
+      <h3>⚖️ Legal Disclaimer</h3>
+      <p>QRForge provides this service without warranties:</p>
+      <ul>
+        <li>Not responsible for QR code performance or scanning issues</li>
+        <li>Not liable for damages from incorrect URLs or code distribution</li>
+        <li>Users assume all responsibility for generated content</li>
+        <li>Service may be discontinued without notice</li>
+      </ul>
+      
+      <p style="background: #fff3cd; padding: 10px; border-radius: 5px; border-left: 4px solid #ffc107;">
+        <strong>⚠️ Warning:</strong> Always test your QR codes thoroughly before widespread use. Static codes cannot be updated!
+      </p>
+    </div></p></div></div>
+  <div id="faqs-modal" class="modal"><div class="modal-content" style="text-align: left;"><span class="close" onclick="closeModal('faqs-modal')">×</span><h2>FAQs</h2><p><h3>🤔 General Questions</h3>
+      
+      <p><strong>Q: What is a static QR code?</strong><br>
+      A: A static QR code permanently encodes your URL into the pattern. Once generated, it cannot be changed or updated.</p>
+      
+      <p><strong>Q: How is this different from dynamic QR codes?</strong><br>
+      A: Dynamic codes use short URLs that can be edited later. Static codes embed the full URL directly - permanent but uneditable.</p>
+      
+      <p><strong>Q: Why should I use QRForge?</strong><br>
+      A: Complete privacy (no data stored), permanent codes, free access, and beautiful, customizable output.</p>
+      
+      <h3>🔐 Privacy & Security</h3>
+      
+      <p><strong>Q: Do you store my URLs or QR codes?</strong><br>
+      A: No! Everything happens locally in your browser. We have no database and collect zero personal data.</p>
+      
+      <p><strong>Q: Why do I need to "login" with affiliate links?</strong><br>
+      A: This supports our free service. Clicking any affiliate link unlocks full functionality while helping us earn commissions.</p>
+      
+      <p><strong>Q: Is my data safe?</strong><br>
+      A: Absolutely. Since we don't collect or store your data, there's nothing to compromise.</p>
+      
+      <h3>🛠️ Technical Questions</h3>
+      
+      <p><strong>Q: What happens if I make a typo in my URL?</strong><br>
+      A: You must generate a new QR code. Static codes cannot be edited after creation.</p>
+      
+      <p><strong>Q: Can I customize the colors or design?</strong><br>
+      A: Currently we generate standard black-and-white QR codes for maximum compatibility. The nickname feature adds text below the code.</p>
+      
+      <p><strong>Q: Why won't my QR code scan properly?</strong><br>
+      A: Common issues: poor print quality, insufficient contrast, damage to code, low lighting, or camera focus problems.</p>
+      
+      <h3>💸 Pricing & Support</h3>
+      
+      <p><strong>Q: Is this really free forever?</strong><br>
+      A: Yes! We're committed to keeping QRForge free through affiliate support and optional donations.</p>
+      
+      <p><strong>Q: How can I support QRForge?</strong><br>
+      A: Use our affiliate links when logging in, share with others, or donate via the Donate button.</p>
+</div></p></div></div>
+  <div id="about-modal" class="modal"><div class="modal-content" style="text-align: left;"><span class="close" onclick="closeModal('about-modal')">×</span><h2>About QRForge</h2><p><h3>🚀 Our Mission</h3>
+      <p>QRForge was created to provide <strong>truly private, permanent, and free</strong> QR code generation. In a world of data collection and subscriptions, we believe in simplicity and user empowerment.</p>
+      
+      <h3>💡 Why We're Different</h3>
+      <ul>
+        <li><strong>Zero Data Collection:</strong> Your URLs never leave your browser</li>
+        <li><strong>Permanent Ownership:</strong> Your static QR codes work forever, no third-party control</li>
+        <li><strong>Transparent Model:</strong> Free access supported by voluntary affiliate usage</li>
+        <li><strong>No Surprises:</strong> No hidden costs, accounts, or tracking</li>
+      </ul>
+      
+      <h3>🛡️ Privacy-First Design</h3>
+      <p>We built QRForge with privacy as the foundation. Unlike other services that store and analyze your data, we believe your business is your business.</p>
+      
+      <h3>🌱 Sustainable & Free</h3>
+      <p>By using affiliate links for login, we've created a sustainable model that keeps QRForge free for everyone while maintaining complete transparency.</p>
+      
+      <h3>🔧 Technology</h3>
+      <p>Built with modern web technologies for reliability and speed. All processing happens client-side for maximum privacy and performance.</p>
+      
+      <div style="background: #e8f5e8; padding: 15px; border-radius: 8px; margin-top: 20px;">
+        <h4 style="margin-top: 0;">💝 Support Our Mission</h4>
+        <p>Help us keep QRForge free and private by:</p>
+        <ul>
+          <li>Using our affiliate links when logging in</li>
+          <li>Sharing with friends and colleagues</li>
+          <li>Making a donation via the Donate button</li>
+          <li>Providing feedback for improvements</li>
+        </ul>
+    <p><h3>Founded by Boiki Keaitaya</h3> P.O. Box 627 ABG Sebele Gaborone Botswana Contact Us: +267-72875119. bkeaitaya@gmail.com</p>
+      </div>
+
+  <script>
+    // ===========================================
+    // FIXED: LOGO SYSTEM - NO SUPABASE
+    // ===========================================
+    function loadLogo() {
+      const container = document.getElementById('logo-container');
+      if (!container) return;
+      
+      // Check localStorage for custom logo
+      const customLogo = localStorage.getItem('qrforge_customLogo');
+      
+      if (customLogo) {
+        // Use custom logo from localStorage
+        container.innerHTML = `
+          <img src="${customLogo}" style="height:40px; width:40px; object-fit:contain; margin-right:10px; border-radius:8px;" alt="QRForge Logo">
+          <strong>QRForge</strong>
+        `;
+      } else {
+        // Use default SVG logo
+        container.innerHTML = `
+          <svg viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="8" style="width:40px;height:40px;">
+            <rect x="15" y="15" width="25" height="25" rx="4"/>
+            <rect x="60" y="15" width="25" height="25" rx="4"/>
+            <rect x="15" y="60" width="25" height="25" rx="4"/>
+            <path d="M50 30 H70 V50 H50 Z" fill="currentColor"/>
+          </svg>
+          <strong>QRForge</strong>
+        `;
+      }
+    }
+
+    // ===========================================
+    // FIXED: PAYPAL PERSONAL ACCOUNT CONNECTION
+    // ===========================================
+    // REPLACE THESE VALUES WITH YOUR ACTUAL PAYPAL INFO:
+    const PAYPAL_ME_USERNAME = "boikikea"; // Your PayPal.Me username
+    const PAYPAL_EMAIL = "bkeaitaya@gmail.com"; // Your PayPal email for donations
+    
+    // Function to get PayPal link
+    function getPayPalLink(amount = null) {
+      // Option 1: Using PayPal.Me (personal account - recommended)
+      if (PAYPAL_ME_USERNAME) {
+        if (amount && amount !== 'none') {
+          return `https://www.paypal.me/${PAYPAL_ME_USERNAME}/${amount}`;
+        } else {
+          return `https://www.paypal.me/${PAYPAL_ME_USERNAME}`;
+        }
+      }
+      
+      // Option 2: Fallback to custom donate link
+      const baseUrl = "https://www.paypal.com/donate";
+      const params = new URLSearchParams({
+        'business': PAYPAL_EMAIL,
+        'amount': amount || '',
+        'currency_code': 'USD',
+        'item_name': 'QRForge Donation'
+      });
+      return `${baseUrl}?${params.toString()}`;
+    }
+
+    // ===========================================
+    // GLOBAL VARIABLES FOR DONATION PAYWALL
+    // ===========================================
+    let pendingQRData = null;
+
+    // === HELPER LOGGER ===
+    function qrforgeLog(type, payload = {}) {
+      try {
+        const key = "qrforge_logs";
+        const arr = JSON.parse(localStorage.getItem(key) || "[]");
+        arr.unshift({ ts: Date.now(), type, payload });
+        if (arr.length > 1000) arr.length = 1000;
+        localStorage.setItem(key, JSON.stringify(arr));
+      } catch (e) { console.warn("Log failed", e); }
+    }
+    window.qrforgeLog = qrforgeLog;
+
+    // === AD ROTATION SYSTEM ===
+    function getAds(slotName) {
+      const arrRaw = localStorage.getItem(slotName);
+      if (arrRaw) {
+        try {
+          const parsed = JSON.parse(arrRaw);
+          if (Array.isArray(parsed)) return parsed;
+        } catch (e) { /* ignore */ }
+      }
+      
+      if (slotName === 'ads_top') {
+        const single = localStorage.getItem('ad_top');
+        const link = localStorage.getItem('ad_top_link') || null;
+        if (single) return [{ id: 'legacy-top', image: single, link, enabled: true }];
+      } else if (slotName === 'ads_bottom') {
+        const single = localStorage.getItem('ad_bottom');
+        const link = localStorage.getItem('ad_bottom_link') || null;
+        if (single) return [{ id: 'legacy-bottom', image: single, link, enabled: true }];
+      }
+      return [];
+    }
+
+    function renderAdSlot(slotName, containerId) {
+      const ads = getAds(slotName); 
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      const enabled = (localStorage.getItem('ads_enabled') === 'true') || (localStorage.getItem('ad_enabled') === 'true');
+
+      if (!enabled || !ads.length) {
+        container.style.display = 'none';
+        container.innerHTML = '';
+        return;
+      }
+      container.style.display = 'grid';
+
+      const idxKey = `${slotName}_idx`;
+      let idx = parseInt(localStorage.getItem(idxKey) || '0', 10);
+      if (isNaN(idx) || idx < 0 || idx >= ads.length) idx = 0;
+
+      let attempts = 0;
+      while (attempts < ads.length && !ads[idx].enabled) { 
+        idx = (idx + 1) % ads.length; 
+        attempts++; 
+      }
+      const ad = ads[idx];
+      if (!ad) {
+        container.innerHTML = '';
+        return;
+      }
+
+      const img = document.createElement('img');
+      img.src = ad.image;
+      img.alt = ad.id || 'ad';
+      img.style.maxWidth = '100%';
+      img.style.display = 'block';
+      
+      const hasLink = ad.link && ad.link.trim().length > 0 && ad.link !== '#';
+      img.style.cursor = hasLink ? 'pointer' : 'default';
+
+      img.addEventListener('click', (e) => {
+        try { 
+          qrforgeLog('ad_click', { slot: slotName, adId: ad.id, link: ad.link || null }); 
+        } catch(e){}
+        if (hasLink) window.open(ad.link, '_blank', 'noopener');
+      });
+
+      container.innerHTML = '';
+      
+      if (hasLink) {
+        const a = document.createElement('a');
+        a.href = ad.link;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.addEventListener('click', function(ev){
+          if(!this.href || this.href === window.location.href + '#') {
+            ev.preventDefault();
+            return;
+          }
+          try { 
+            qrforgeLog('ad_click_anchor', { slot: slotName, adId: ad.id, link: ad.link }); 
+          } catch(e){}
+        });
+        a.appendChild(img);
+        container.appendChild(a);
+      } else {
+        container.appendChild(img);
+      }
+
+      try { 
+        qrforgeLog('ad_impression', { slot: slotName, adId: ad.id }); 
+      } catch(e){}
+
+      localStorage.setItem(idxKey, String((idx + 1) % ads.length));
+    }
+
+    function startAdRotation() {
+      renderAdSlot('ads_top', 'ad-top-slot');
+      renderAdSlot('ads_bottom', 'ad-bottom-slot');
+
+      const interval = parseInt(localStorage.getItem('ads_interval') || '8000', 10) || 8000;
+
+      if (window._qrforgeAdRotationTimer) clearInterval(window._qrforgeAdRotationTimer);
+      window._qrforgeAdRotationTimer = setInterval(() => {
+        renderAdSlot('ads_top', 'ad-top-slot');
+        renderAdSlot('ads_bottom', 'ad-bottom-slot');
+      }, interval);
+    }
+
+    // === MODAL HELPERS ===
+    window.openModal = id => { 
+      const el = document.getElementById(id); 
+      if (el) el.style.display = 'flex'; 
+    };
+    
+    window.closeModal = id => { 
+      const el = document.getElementById(id); 
+      if (el) el.style.display = 'none'; 
+    };
+    
+    window.onclick = e => { 
+      if (e.target.classList && e.target.classList.contains('modal')) {
+        closeModal(e.target.id); 
+      }
+    };
+
+    // === LOGIN & AFFILIATE SYSTEM ===
+    const updateLoginUI = () => {
+      const loggedIn = localStorage.getItem('userLoggedIn') === 'true';
+      const authBtn = document.getElementById('auth-btn');
+      
+      if (authBtn) {
+        authBtn.textContent = loggedIn ? 'Logout' : 'Login';
+        
+        if (loggedIn) {
+          authBtn.classList.remove('btn-secondary');
+          authBtn.classList.add('logged-in');
+        } else {
+          authBtn.classList.add('btn-secondary');
+          authBtn.classList.remove('logged-in');
+        }
+      }
+
+      const lp = document.getElementById('login-prompt');
+      if (lp) {
+        lp.style.display = loggedIn ? 'none' : 'block';
+      }
+
+      // Show feature popup after login
+      if (loggedIn && typeof showFeaturePopup === 'function') {
+        setTimeout(() => showFeaturePopup(), 2000);
+      }
+    };
+
+    window.handleAffiliateLogin = (url) => {
+      if (url && url.startsWith('http')) {
+        qrforgeLog('affiliate_click', { link: url });
+        window.open(url, '_blank', 'noopener');
+      }
+      localStorage.setItem('userLoggedIn', 'true');
+      updateLoginUI();
+      closeModal('login-modal');
+    };
+
+    // Auth button event listener
+    const authBtnEl = document.getElementById('auth-btn');
+    if (authBtnEl) {
+      authBtnEl.addEventListener('click', () => {
+        if (localStorage.getItem('userLoggedIn') === 'true') {
+          if (confirm('Log out?')) {
+            localStorage.removeItem('userLoggedIn');
+            updateLoginUI();
+          }
+        } else {
+          openModal('login-modal');
+        }
+      });
+    }
+
+    // === DONATION SYSTEM ===
+    // Donate button in header
+    const donateBtnEl = document.getElementById('donate-btn');
+    if (donateBtnEl) {
+      donateBtnEl.addEventListener('click', (e) => {
+        qrforgeLog('donate_click_header', { method: 'paypal' });
+        // Open PayPal for direct donation button
+        window.open(getPayPalLink(), '_blank', 'noopener');
+      });
+    }
+
+    // Donation continue button in soft paywall
+    const donationContinueBtn = document.getElementById('donation-continue');
+    if (donationContinueBtn) {
+      donationContinueBtn.addEventListener('click', handleDonationContinue);
+    }
+
+    function handleDonationContinue() {
+      // Get selected donation amount
+      const selectedDonation = document.querySelector('input[name="donation"]:checked').value;
+      
+      // Log the choice
+      qrforgeLog('donation_choice', { amount: selectedDonation });
+      
+      // If user selected an amount (not "none"), open PayPal
+      if (selectedDonation !== 'none') {
+        const paypalUrl = getPayPalLink(selectedDonation);
+        window.open(paypalUrl, '_blank', 'noopener');
+        
+        // Also mark that user has donated
+        localStorage.setItem('qrforge_has_donated', 'true');
+        qrforgeLog('donation_attempt', { amount: selectedDonation });
+      }
+      
+      // Close donation modal
+      closeModal('donation-modal');
+      
+      // Now show the QR code that was pending
+      if (pendingQRData) {
+        showQRCode(pendingQRData.url, pendingQRData.nick);
+        pendingQRData = null; // Clear pending data
+      }
+    }
+
+    // === QR CODE GENERATION WITH DONATION PAYWALL ===
+    function generateQRCode(url, nick) {
+      const container = document.getElementById('qr-canvas');
+      if (!container) return;
+      
+      container.innerHTML = '';
+      const qrSize = 280;
+      
+      // Create QR code
+      new QRCode(container, {
+        text: url, 
+        width: qrSize, 
+        height: qrSize,
+        colorDark: '#000000', 
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      // Process the QR code with branding
+      setTimeout(() => {
+        const originalCanvas = container.querySelector('canvas');
+        if (!originalCanvas) return;
+
+        const margin = 25; 
+        const bottomMargin = 40;
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = qrSize + (margin * 2);
+        finalCanvas.height = qrSize + margin + bottomMargin;
+        const ctx = finalCanvas.getContext('2d');
+
+        // White background
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+        
+        // Draw QR code
+        ctx.drawImage(originalCanvas, margin, margin);
+
+        // Add nickname if provided
+        if (nick) {
+          ctx.font = '600 18px Poppins'; 
+          ctx.fillStyle = '#e91e63'; 
+          ctx.textAlign = 'center';
+          const textY = margin + qrSize + (bottomMargin / 1.5);
+          ctx.fillText(nick, finalCanvas.width / 2, textY);
+        }
+
+        container.innerHTML = '';
+        container.appendChild(finalCanvas);
+        
+        // Update custom message
+        const customMsg = document.getElementById('custom-link-msg');
+        if (customMsg) {
+          customMsg.textContent = nick ? `Branded with: ${nick}` : '';
+        }
+        
+      }, 50);
+    }
+
+    function showQRCode(url, nick) {
+      generateQRCode(url, nick);
+      qrforgeLog('qr_displayed', { url: url, nickname: nick || null });
+      openModal('qr-modal');
+    }
+
+    // Main generate button handler
+    const genBtn = document.getElementById('generate-btn');
+    if (genBtn) {
+      genBtn.addEventListener('click', () => {
+        // Check login first
+        if (!localStorage.getItem('userLoggedIn')) {
+          openModal('login-modal');
+          return;
+        }
+
+        // Get URL and nickname
+        let url = (document.getElementById('url-input')?.value || '').trim();
+        let nick = (document.getElementById('nickname-input')?.value || '').trim().slice(0, 8);
+
+        // Validate URL
+        if (!url) {
+          alert('Please enter a URL');
+          return;
+        }
+        
+        // Add https:// if missing
+        if (!url.match(/^https?:\/\//i)) {
+          url = 'https://' + url;
+        }
+
+        // Log QR creation
+        qrforgeLog('qr_created', { url: url, nickname: nick || null });
+
+        // ===========================================
+        // DONATION PAYWALL LOGIC
+        // ===========================================
+        
+        // Check if user has donated before
+        const hasDonatedBefore = localStorage.getItem('qrforge_has_donated') === 'true';
+        
+        // Show donation modal only 20% of the time if never donated before
+        // Change to true for testing, or implement random logic
+       const shouldShowDonation = !hasDonatedBefore && Math.random() < 0.4; // 40% chance
+        
+        if (shouldShowDonation && !hasDonatedBefore) {
+          // Store QR data to show after donation choice
+          pendingQRData = { url, nick };
+          
+          // Show donation modal
+          openModal('donation-modal');
+        } else {
+          // Skip donation modal, show QR directly
+          showQRCode(url, nick);
+        }
+      });
+    }
+
+    // === SHARE & DOWNLOAD HELPERS ===
+    window.downloadPNG = () => {
+      const canvas = document.querySelector('#qr-canvas canvas');
+      if (canvas) {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/png'); 
+        a.download = 'qrforge.png'; 
+        a.click();
+        qrforgeLog('download', { format: 'png' });
+      }
+    };
+    
+    window.downloadJPG = () => {
+      const canvas = document.querySelector('#qr-canvas canvas');
+      if (canvas) {
+        const a = document.createElement('a');
+        a.href = canvas.toDataURL('image/jpeg', 0.95); 
+        a.download = 'qrforge.jpg'; 
+        a.click();
+        qrforgeLog('download', { format: 'jpg' });
+      }
+    };
+    
+    window.copyImage = () => {
+      const canvas = document.querySelector('#qr-canvas canvas');
+      if (canvas) {
+        canvas.toBlob(blob => {
+          navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+            .then(() => {
+              alert('Copied to clipboard!');
+              qrforgeLog('copy_success');
+            })
+            .catch(() => {
+              alert('Copy failed');
+              qrforgeLog('copy_failed');
+            });
+        });
+      }
+    };
+
+    // Social Sharing
+    window.shareWhatsApp = () => {
+      const text = "Check out this QR Code I generated with QRForge!";
+      window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + location.href)}`, '_blank');
+      qrforgeLog('share', { platform: 'whatsapp' });
+    };
+    
+    window.shareTwitter = () => {
+      const text = "Just generated a permanent QR code with QRForge! #QRForge";
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${location.href}`, '_blank');
+      qrforgeLog('share', { platform: 'twitter' });
+    };
+    
+    window.shareFacebook = () => {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${location.href}`, '_blank');
+      qrforgeLog('share', { platform: 'facebook' });
+    };
+
+    // === PRINT ON DEMAND ===
+    window.openPrintOnDemand = () => {
+      const url = "https://www.printful.com";
+      window.open(url, "_blank");
+      qrforgeLog('print_demand_click');
+    };
+
+    // === UTILITIES ===
+    // Dark/Light mode toggle
+    const toggleModeBtn = document.getElementById('toggle-mode');
+    if (toggleModeBtn) {
+      toggleModeBtn.addEventListener('click', () => {
+        document.body.classList.toggle('dark');
+        const theme = document.body.classList.contains('dark') ? 'dark' : 'light';
+        localStorage.setItem('qrforge_theme', theme);
+        qrforgeLog('theme_change', { theme: theme });
+      });
+    }
+
+    // Apply saved theme on load
+    (function applySavedTheme() {
+      const t = localStorage.getItem('qrforge_theme') || 'light';
+      if (t === 'dark') {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+    })();
+
+    // Feature popup functions
+    function showFeaturePopup(title = "🚀 New Feature!", message = "Check out our latest updates.") {
+      const popup = document.getElementById("feature-popup");
+      if (!popup) return;
+      
+      // Only show once per day
+      const lastPopup = localStorage.getItem('last_feature_popup');
+      const now = Date.now();
+      const oneDay = 24 * 60 * 60 * 1000;
+      
+      if (!lastPopup || (now - parseInt(lastPopup)) > oneDay) {
+        document.getElementById("popup-title").innerText = title;
+        document.getElementById("popup-message").innerText = message;
+        popup.style.display = "block";
+        localStorage.setItem('last_feature_popup', now.toString());
+        qrforgeLog('feature_popup_shown');
+      }
+    }
+    
+    function closeFeaturePopup() {
+      const popup = document.getElementById("feature-popup");
+      if (!popup) return;
+      popup.style.display = "none";
+      qrforgeLog('feature_popup_closed');
+    }
+    
+    function handlePopupAction() { 
+      window.open("https://your-feature-link.com", "_blank", 'noopener'); 
+      closeFeaturePopup(); 
+      qrforgeLog('feature_popup_action');
+    }
+
+    // === INITIALIZATION ===
+    // Load logo on startup
+    loadLogo();
+    updateLoginUI();
+    
+    // Start ad rotation when DOM is loaded
+    document.addEventListener("DOMContentLoaded", () => {
+      startAdRotation();
+    });
+
+    // Listen for admin changes to ads
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'ads_top' || e.key === 'ads_bottom' || e.key === 'ads_enabled' || e.key === 'ads_interval') {
+        startAdRotation();
+      }
+      // Listen for logo changes from admin
+      if (e.key === 'qrforge_customLogo') {
+        loadLogo();
+      }
+    });
+
+  </script>
+</body>
+</html>
