@@ -1357,7 +1357,36 @@ function importConfig() {
 // Add a hidden import button (for testing)
 // Add this to your index.html footer or header
 // <button onclick="importConfig()" style="position:fixed; bottom:10px; right:10px; z-index:9999; padding:5px; font-size:12px;">Import Config</button>
+
+// Load config from URL parameter on page load
+function loadConfigFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const configParam = urlParams.get('config');
     
+    if (configParam) {
+        try {
+            const configStr = decodeURIComponent(atob(configParam));
+            const config = JSON.parse(configStr);
+            
+            // Save to localStorage
+            Object.keys(config).forEach(key => {
+                if (config[key]) {
+                    localStorage.setItem(key, config[key]);
+                }
+            });
+            
+            console.log('Config loaded from URL');
+            
+            // Remove config from URL
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {
+            console.error('Failed to load config from URL:', e);
+        }
+    }
+}
+
+// Call this early in your script
+loadConfigFromURL();    
 // Test function to verify ads are working
 function testAds() {
     console.log('Checking ad configuration...');
@@ -1379,5 +1408,6 @@ setTimeout(testAds, 1000);
 </body>
 
 </html>
+
 
 
