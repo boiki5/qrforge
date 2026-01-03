@@ -1295,6 +1295,43 @@ Creation of one-to-one copies of existing commercial or known sites and digital 
         loadLogo();
       }
     });
+// Add default ads if none exist
+function setupDefaultAdsIfNeeded() {
+    // Check if ads are configured
+    const hasAds = localStorage.getItem('ad_top') || localStorage.getItem('ads_top');
+    
+    if (!hasAds) {
+        console.log('Setting up default ads...');
+        
+        // Default ad 1 (Top slot)
+        localStorage.setItem('ad_top', 'https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=728&h=90&fit=crop&auto=format');
+        localStorage.setItem('ad_top_link', 'https://unsplash.com');
+        
+        // Default ad 2 (Bottom slot)  
+        localStorage.setItem('ad_bottom', 'https://images.unsplash.com/photo-1551650975-87deedd944c3?w=728&h=90&fit=crop&auto=format');
+        localStorage.setItem('ad_bottom_link', 'https://unsplash.com');
+        
+        // Enable ads
+        localStorage.setItem('ads_enabled', 'true');
+        localStorage.setItem('ads_interval', '8000');
+        
+        console.log('Default ads configured successfully');
+        
+        // Restart ad rotation
+        if (window.startAdRotation) {
+            setTimeout(() => {
+                startAdRotation();
+            }, 500);
+        }
+    }
+}
+
+// Call this function on page load
+document.addEventListener('DOMContentLoaded', function() {
+    setupDefaultAdsIfNeeded();
+});
+
+    
 // Test function to verify ads are working
 function testAds() {
     console.log('Checking ad configuration...');
@@ -1315,3 +1352,4 @@ setTimeout(testAds, 1000);
 </body>
 
 </html>
+
