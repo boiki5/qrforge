@@ -625,8 +625,23 @@ function exportConfig() {
         <p>Save this config or upload to GitHub Pages.</p>
     `;
 }
-  
+  function generateConfigURL() {
+    const config = {
+        // ... your config data ...
+    };
+    
+    // Convert to base64
+    const configStr = JSON.stringify(config);
+    const base64Config = btoa(unescape(encodeURIComponent(configStr)));
+    
+    // Generate URL for GitHub Pages
+    const githubURL = 'https://your-username.github.io/qrforge/';
+    const finalURL = `${githubURL}?config=${encodeURIComponent(base64Config)}`;
+    
+    return finalURL;
+}
 </script>
 </body>
 </html>
+
 
