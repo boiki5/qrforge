@@ -1295,7 +1295,23 @@ Creation of one-to-one copies of existing commercial or known sites and digital 
         loadLogo();
       }
     });
+// Test function to verify ads are working
+function testAds() {
+    console.log('Checking ad configuration...');
+    console.log('ad_top:', localStorage.getItem('ad_top'));
+    console.log('ad_top_link:', localStorage.getItem('ad_top_link'));
+    console.log('ads_enabled:', localStorage.getItem('ads_enabled'));
+    
+    // Force enable ads for testing
+    localStorage.setItem('ads_enabled', 'true');
+    startAdRotation();
+    
+    // Open browser console (F12) to see the logs
+}
 
+// Call on page load
+setTimeout(testAds, 1000);
   </script>
 </body>
+
 </html>
