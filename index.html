@@ -1330,7 +1330,33 @@ function setupDefaultAdsIfNeeded() {
 document.addEventListener('DOMContentLoaded', function() {
     setupDefaultAdsIfNeeded();
 });
+// Add this to index.html
+function importConfig() {
+    const configText = prompt('Paste your QRForge config JSON:');
+    if (!configText) return;
+    
+    try {
+        const config = JSON.parse(configText);
+        
+        // Apply config
+        if (config.logo) localStorage.setItem('qrforge_customLogo', config.logo);
+        if (config.ad_top) localStorage.setItem('ad_top', config.ad_top);
+        if (config.ad_top_link) localStorage.setItem('ad_top_link', config.ad_top_link);
+        if (config.ad_bottom) localStorage.setItem('ad_bottom', config.ad_bottom);
+        if (config.ad_bottom_link) localStorage.setItem('ad_bottom_link', config.ad_bottom_link);
+        if (config.ads_enabled) localStorage.setItem('ads_enabled', config.ads_enabled);
+        if (config.ads_interval) localStorage.setItem('ads_interval', config.ads_interval);
+        
+        alert('✅ Config imported successfully! Page will reload.');
+        location.reload();
+    } catch (error) {
+        alert('❌ Invalid config: ' + error.message);
+    }
+}
 
+// Add a hidden import button (for testing)
+// Add this to your index.html footer or header
+// <button onclick="importConfig()" style="position:fixed; bottom:10px; right:10px; z-index:9999; padding:5px; font-size:12px;">Import Config</button>
     
 // Test function to verify ads are working
 function testAds() {
@@ -1348,8 +1374,10 @@ function testAds() {
 
 // Call on page load
 setTimeout(testAds, 1000);
+    
   </script>
 </body>
 
 </html>
+
 
