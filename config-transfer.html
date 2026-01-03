@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QRForge Config Transfer</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        textarea { width: 100%; height: 200px; margin: 10px 0; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        .step { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <h1>QRForge Configuration Transfer</h1>
+    
+    <div class="step">
+        <h2>Step 1: Get Config from Admin Panel</h2>
+        <p>Open your admin panel and paste the config here:</p>
+        <textarea id="adminConfig" placeholder='Paste config from admin panel...'></textarea>
+    </div>
+    
+    <div class="step">
+        <h2>Step 2: Apply to GitHub Pages</h2>
+        <button onclick="applyConfig()">Apply Configuration</button>
+        <p id="result"></p>
+    </div>
+    
+    <div class="step">
+        <h2>Step 3: Test</h2>
+        <p><a href="index.html" target="_blank">Open Main App</a> to see if ads and logo appear.</p>
+    </div>
+
+    <script>
+        function applyConfig() {
+            try {
+                const configText = document.getElementById('adminConfig').value;
+                if (!configText.trim()) {
+                    alert('Please paste config first');
+                    return;
+                }
+                
+                // Parse the config
+                const config = JSON.parse(configText);
+                
+                // Apply to localStorage
+                if (config.logo) localStorage.setItem('qrforge_customLogo', config.logo);
+                if (config.ad_top) localStorage.setItem('ad_top', config.ad_top);
+                if (config.ad_top_link) localStorage.setItem('ad_top_link', config.ad_top_link);
+                if (config.ad_bottom) localStorage.setItem('ad_bottom', config.ad_bottom);
+                if (config.ad_bottom_link) localStorage.setItem('ad_bottom_link', config.ad_bottom_link);
+                if (config.ads_enabled) localStorage.setItem('ads_enabled', config.ads_enabled);
+                if (config.ads_interval) localStorage.setItem('ads_interval', config.ads_interval);
+                
+                document.getElementById('result').innerHTML = 
+                    '<span style="color:green">✅ Configuration applied successfully!</span><br>' +
+                    'Now open the <a href="index.html">main app</a> to see your ads and logo.';
+                
+            } catch (error) {
+                document.getElementById('result').innerHTML = 
+                    '<span style="color:red">❌ Error: ' + error.message + '</span>';
+            }
+        }
+    </script>
+</body>
+</html>
