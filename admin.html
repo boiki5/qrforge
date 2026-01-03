@@ -594,6 +594,39 @@ document.addEventListener("DOMContentLoaded", ()=>{
   renderLogs();
   renderStats();
 });
+function exportConfig() {
+    const config = {
+        logo: localStorage.getItem('qrforge_customLogo'),
+        ad_top: localStorage.getItem('ad_top'),
+        ad_top_link: localStorage.getItem('ad_top_link'),
+        ad_bottom: localStorage.getItem('ad_bottom'),
+        ad_bottom_link: localStorage.getItem('ad_bottom_link'),
+        ads_enabled: localStorage.getItem('ads_enabled') || 'true',
+        ads_interval: localStorage.getItem('ads_interval') || '8000'
+    };
+    
+    const configStr = JSON.stringify(config, null, 2);
+    
+    // Create downloadable file
+    const blob = new Blob([configStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'qrforge-config.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    // Also show as text for copying
+    document.getElementById('export-display').innerHTML = `
+        <h3>Config Export:</h3>
+        <textarea style="width:100%; height:150px; font-family: monospace;">${configStr}</textarea>
+        <p>Save this config or upload to GitHub Pages.</p>
+    `;
+}
+  
 </script>
 </body>
 </html>
+
